@@ -1,0 +1,104 @@
+执行以下命令，acme.sh 会安装到 ~/.acme.sh 目录下。
+curl  https://get.acme.sh | sh
+安装成功后执行 source ~/.bashrc 以确保脚本所设置的命令别名生效。
+
+如果安装报错，那么可能是因为系统缺少 acme.sh 所需要的依赖项，acme.sh 的依赖项主要是 netcat(nc)，我们通过以下命令来安装这些依赖项，然后重新安装一遍 acme.sh:
+sudo apt-get -y install netcat
+
+证书生成
+以下的命令会临时监听 80 端口，请确保执行该命令前 80 端口没有使用
+sudo ~/.acme.sh/acme.sh --issue -d do.yinziming.com --standalone -k ec-256
+-k 表示密钥长度，后面的值可以是 ec-256 、ec-384、2048、3072、4096、8192，带有 ec 表示生成的是 ECC 证书，没有则是 RSA 证书。
+在安全性上 256 位的 ECC 证书等同于 3072 位的 RSA 证书。
+
+证书更新
+手动更新 ECC 证书，执行：
+sudo ~/.acme.sh/acme.sh --renew -d do.yinziming.com --force --ecc
+如果是 RSA 证书则执行：
+sudo ~/.acme.sh/acme.sh --renew -d do.yinziming.com --force
+
+安装证书和密钥
+将证书和密钥安装到 /etc/v2ray 中：
+ECC 证书
+sudo ~/.acme.sh/acme.sh --installcert -d do.yinziming.com --fullchainpath /root/v2ray/v2ray.crt --keypath /root/v2ray/v2ray.key --ecc
+RSA 证书
+sudo ~/.acme.sh/acme.sh --installcert -d do.yinziming.com --fullchainpath /root/v2ray/v2ray.crt --keypath /root/v2ray/v2ray.key
+
+配置 V2Ray
+服务器
+{
+  "inbounds": [
+    {
+      "port": 443,
+      "protocol": "vmess",
+      "settings": {
+        "clients": [
+          {
+            "id": "23ad6b10-8d1a-40f7-8ad0-e3e35cd38297",
+            "alterId": 64
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "tls", // security 要设置为 tls 才会启用 TLS
+        "tlsSettings": {
+          "certificates": [
+            {
+              "certificateFile": "/root/v2ray/v2ray.crt", // 证书文件
+              "keyFile": "/root/v2ray/v2ray.key" // 密钥文件
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {}
+    }
+  ]
+}
+客户端
+{
+  "inbounds": [
+    {
+      "port": 1080,
+      "protocol": "socks",
+      "sniffing": {
+        "enabled": true,
+        "destOverride": ["http", "tls"]
+      },
+      "settings": {
+        "auth": "noauth"
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "vmess",
+      "settings": {
+        "vnext": [
+          {
+            "address": "mydomain.me", // tls 需要域名，所以这里应该填自己的域名
+            "port": 443,
+            "users": [
+              {
+                "id": "23ad6b10-8d1a-40f7-8ad0-e3e35cd38297",
+                "alterId": 64
+              }
+            ]
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "tls" // 客户端的 security 也要设置为 tls
+      }
+    }
+  ]
+}
+
+验证
+https://www.ssllabs.com/ssltest/index.html
