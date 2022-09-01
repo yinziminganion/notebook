@@ -1,3 +1,5 @@
 bash <(wget --no-check-certificate -qO- 'https://raw.githubusercontent.com/MoeClub/Note/master/InstallNET.sh') -u "20.04" -v 64 -p "自定义root密码" -port "自定义ssh端口"
 
 https://www.zmczx.com/t/178
+
+wget --no-check-certificate -O NewReinstall.sh https://git.io/newbetags && chmod a+x NewReinstall.sh && bash NewReinstall.sh
